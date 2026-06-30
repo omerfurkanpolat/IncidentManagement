@@ -1,0 +1,65 @@
+@page "/admin/index-status"
+@using IncidentManagement.Shared.Models
+@using IncidentManagement.Shared.Services
+@inject DocumentRepository DocRepo
+@rendermode InteractiveServer
+
+<PageTitle>İndeks Durumu</PageTitle>
+<h2>RAG İndeks Durumu</h2>
+
+@if (_docs == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-bg-success">
+                <div class="card-body">
+                    <h5>İndekslenen</h5>
+                    <p class="fs-2">@_docs.Count(d => d.IsIndexed)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-warning">
+                <div class="card-body">
+                    <h5>Bekleyen</h5>
+                    <p class="fs-2">@_docs.Count(d => d.Status == DocumentStatus.Approved && !d.IsIndexed)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr><th>Başlık</th><th>Kategori</th><th>İndekslendi</th><th>Tarih</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var d in _docs.Where(d => d.Status == DocumentStatus.Approved))
+            {
+                <tr>
+                    <td>@d.Title</td>
+                    <td>@d.Category</td>
+                    <td>
+                        @if (d.IsIndexed)
+                        { <span class="badge bg-success">✓ Evet</span> }
+                        else
+                        { <span class="badge bg-warning text-dark">Bekliyor</span> }
+                    </td>
+                    <td>@(d.IndexedAt?.ToLocalTime().ToString("dd MMM HH:mm") ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Document>? _docs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _docs = await DocRepo.GetAllAsync();
+    }
+}

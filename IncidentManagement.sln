@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9048DBBF-32E2-4A35-8221-6329F050BA1D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IncidentManagement.Shared", "src\IncidentManagement.Shared\IncidentManagement.Shared.csproj", "{F5A0931D-8CED-4E06-81F5-5A335935A421}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IncidentManagement.DocumentApp", "src\IncidentManagement.DocumentApp\IncidentManagement.DocumentApp.csproj", "{5F2523C7-3F56-4132-BCDD-AB3A1399AAAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IncidentManagement.JobApi", "src\IncidentManagement.JobApi\IncidentManagement.JobApi.csproj", "{31D90BEC-AEC4-45E7-BA4B-1D76670E27D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IncidentManagement.RagPipeline", "src\IncidentManagement.RagPipeline\IncidentManagement.RagPipeline.csproj", "{3A321715-84D6-46D3-9512-5006FD353292}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IncidentManagement.McpServer", "src\IncidentManagement.McpServer\IncidentManagement.McpServer.csproj", "{439B9515-8575-43A9-9AD2-7FEAA4CBF44C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IncidentManagement.Orchestrator", "src\IncidentManagement.Orchestrator\IncidentManagement.Orchestrator.csproj", "{ED62029C-DF6D-4947-B974-896BEAA0BFFC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F5A0931D-8CED-4E06-81F5-5A335935A421}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5A0931D-8CED-4E06-81F5-5A335935A421}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5A0931D-8CED-4E06-81F5-5A335935A421}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5A0931D-8CED-4E06-81F5-5A335935A421}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F2523C7-3F56-4132-BCDD-AB3A1399AAAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F2523C7-3F56-4132-BCDD-AB3A1399AAAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F2523C7-3F56-4132-BCDD-AB3A1399AAAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F2523C7-3F56-4132-BCDD-AB3A1399AAAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31D90BEC-AEC4-45E7-BA4B-1D76670E27D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31D90BEC-AEC4-45E7-BA4B-1D76670E27D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31D90BEC-AEC4-45E7-BA4B-1D76670E27D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31D90BEC-AEC4-45E7-BA4B-1D76670E27D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A321715-84D6-46D3-9512-5006FD353292}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A321715-84D6-46D3-9512-5006FD353292}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A321715-84D6-46D3-9512-5006FD353292}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A321715-84D6-46D3-9512-5006FD353292}.Release|Any CPU.Build.0 = Release|Any CPU
+		{439B9515-8575-43A9-9AD2-7FEAA4CBF44C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{439B9515-8575-43A9-9AD2-7FEAA4CBF44C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{439B9515-8575-43A9-9AD2-7FEAA4CBF44C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{439B9515-8575-43A9-9AD2-7FEAA4CBF44C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED62029C-DF6D-4947-B974-896BEAA0BFFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED62029C-DF6D-4947-B974-896BEAA0BFFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED62029C-DF6D-4947-B974-896BEAA0BFFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED62029C-DF6D-4947-B974-896BEAA0BFFC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F5A0931D-8CED-4E06-81F5-5A335935A421} = {9048DBBF-32E2-4A35-8221-6329F050BA1D}
+		{5F2523C7-3F56-4132-BCDD-AB3A1399AAAC} = {9048DBBF-32E2-4A35-8221-6329F050BA1D}
+		{31D90BEC-AEC4-45E7-BA4B-1D76670E27D8} = {9048DBBF-32E2-4A35-8221-6329F050BA1D}
+		{3A321715-84D6-46D3-9512-5006FD353292} = {9048DBBF-32E2-4A35-8221-6329F050BA1D}
+		{439B9515-8575-43A9-9AD2-7FEAA4CBF44C} = {9048DBBF-32E2-4A35-8221-6329F050BA1D}
+		{ED62029C-DF6D-4947-B974-896BEAA0BFFC} = {9048DBBF-32E2-4A35-8221-6329F050BA1D}
+	EndGlobalSection
+EndGlobal

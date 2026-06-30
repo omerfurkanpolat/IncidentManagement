@@ -1,0 +1,59 @@
+@page "/incidents"
+@using IncidentManagement.Shared.Models
+@using IncidentManagement.Shared.Services
+@inject IncidentReportRepository ReportRepo
+@rendermode InteractiveServer
+
+<PageTitle>Incident Listesi</PageTitle>
+<h2>Incident Listesi</h2>
+
+@if (_reports == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr><th>Job Adı</th><th>Hata Kodu</th><th>Tarih</th><th>Durum</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _reports)
+            {
+                <tr>
+                    <td>@r.JobName</td>
+                    <td><span class="badge bg-danger">@r.ErrorCode</span></td>
+                    <td>@r.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                    <td>
+                        <select class="form-select form-select-sm" style="width:130px"
+                                value="@r.Status"
+                                @onchange="e => UpdateStatus(r, e)">
+                            <option value="@IncidentStatus.Open">Open</option>
+                            <option value="@IncidentStatus.InProgress">InProgress</option>
+                            <option value="@IncidentStatus.Resolved">Resolved</option>
+                        </select>
+                    </td>
+                    <td><a href="incidents/@r.Id" class="btn btn-sm btn-outline-primary">Detay</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<IncidentReport>? _reports;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _reports = await ReportRepo.GetAllAsync();
+    }
+
+    private async Task UpdateStatus(IncidentReport report, ChangeEventArgs e)
+    {
+        if (Enum.TryParse<IncidentStatus>(e.Value?.ToString(), out var status))
+        {
+            report.Status = status;
+            await ReportRepo.UpdateStatusAsync(report.Id!, status);
+        }
+    }
+}

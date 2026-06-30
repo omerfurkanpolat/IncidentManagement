@@ -1,0 +1,58 @@
+@page "/documents/new"
+@using IncidentManagement.Shared.Models
+@using IncidentManagement.Shared.Services
+@inject DocumentRepository DocRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Yeni Doküman</PageTitle>
+<h2>Yeni Doküman Oluştur</h2>
+
+@if (_saved)
+{
+    <div class="alert alert-success">Doküman kaydedildi! Onay için bekliyor.</div>
+}
+
+<EditForm Model="_doc" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label class="form-label">Başlık</label>
+        <InputText class="form-control" @bind-Value="_doc.Title" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Kategori</label>
+        <InputSelect class="form-select" @bind-Value="_doc.Category">
+            <option value="@DocumentCategory.ControlMErrors">Control-M Hataları</option>
+            <option value="@DocumentCategory.IncidentHistory">Geçmiş Incidentlar</option>
+            <option value="@DocumentCategory.CodeDocumentation">Kod Dokümantasyonu</option>
+        </InputSelect>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Yazar Adı</label>
+        <InputText class="form-control" @bind-Value="_doc.AuthorName" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Takım</label>
+        <InputText class="form-control" @bind-Value="_doc.AuthorTeam" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">İçerik</label>
+        <InputTextArea class="form-control" rows="12" @bind-Value="_doc.Content" />
+    </div>
+    <button type="submit" class="btn btn-primary">Kaydet (Onaya Gönder)</button>
+    <a href="documents" class="btn btn-secondary ms-2">İptal</a>
+</EditForm>
+
+@code {
+    private Document _doc = new();
+    private bool _saved;
+
+    private async Task Save()
+    {
+        _doc.Status = DocumentStatus.Pending;
+        _doc.CreatedAt = DateTime.UtcNow;
+        await DocRepo.InsertAsync(_doc);
+        _saved = true;
+        _doc = new();
+    }
+}

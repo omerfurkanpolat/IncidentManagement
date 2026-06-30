@@ -1,0 +1,69 @@
+@page "/admin/approvals"
+@using IncidentManagement.Shared.Models
+@using IncidentManagement.Shared.Services
+@inject DocumentRepository DocRepo
+@rendermode InteractiveServer
+
+<PageTitle>Onay Paneli</PageTitle>
+<h2>Onay Paneli</h2>
+
+@if (_docs == null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (!_docs.Any())
+{
+    <div class="alert alert-info">Onay bekleyen doküman yok.</div>
+}
+else
+{
+    @foreach (var doc in _docs)
+    {
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                <strong>@doc.Title</strong>
+                <span class="text-muted">@doc.AuthorName / @doc.AuthorTeam — @doc.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Kategori: @doc.Category</p>
+                <pre class="bg-light p-2 rounded" style="max-height:200px;overflow-y:auto">@doc.Content</pre>
+                <div class="mt-2 d-flex gap-2 align-items-center">
+                    <input class="form-control" style="width:200px" placeholder="Onaylayan adı"
+                           @bind="_approverNames[doc.Id!]" />
+                    <button class="btn btn-success" @onclick="() => Approve(doc)">Onayla</button>
+                    <button class="btn btn-danger" @onclick="() => Reject(doc)">Reddet</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<Document>? _docs;
+    private Dictionary<string, string> _approverNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _docs = await DocRepo.GetPendingAsync();
+        foreach (var d in _docs)
+            _approverNames.TryAdd(d.Id!, string.Empty);
+    }
+
+    private async Task Approve(Document doc)
+    {
+        var approver = _approverNames.GetValueOrDefault(doc.Id!, "Admin");
+        await DocRepo.ApproveAsync(doc.Id!, string.IsNullOrWhiteSpace(approver) ? "Admin" : approver);
+        await Reload();
+    }
+
+    private async Task Reject(Document doc)
+    {
+        await DocRepo.RejectAsync(doc.Id!);
+        await Reload();
+    }
+}

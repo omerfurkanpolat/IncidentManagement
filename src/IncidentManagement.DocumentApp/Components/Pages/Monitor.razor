@@ -1,0 +1,61 @@
+@page "/monitor"
+@using IncidentManagement.Shared.Models
+@using IncidentManagement.Shared.Services
+@inject JobResultRepository JobRepo
+@inject IncidentReportRepository ReportRepo
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>Live Monitor</PageTitle>
+<h2>Live Monitor <span class="badge bg-success">CANLI</span></h2>
+<p class="text-muted">Her 5 saniyede bir güncelleniyor</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <h5>Son Job Sonuçları</h5>
+        <div style="max-height:400px;overflow-y:auto">
+            @foreach (var job in _jobs)
+            {
+                <div class="d-flex justify-content-between align-items-center border-bottom py-1
+                            @(job.Status == JobStatus.Failed ? "text-danger" : "text-success")">
+                    <span>@job.JobName</span>
+                    <span class="badge @(job.Status == JobStatus.Failed ? "bg-danger" : "bg-success")">@job.Status</span>
+                    <span class="text-muted small">@job.ReceivedAt.ToLocalTime().ToString("HH:mm:ss")</span>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-md-6">
+        <h5>Son Incident Raporları</h5>
+        <div style="max-height:400px;overflow-y:auto">
+            @foreach (var r in _reports)
+            {
+                <div class="border-bottom py-1">
+                    <div class="d-flex justify-content-between">
+                        <a href="incidents/@r.Id">@r.JobName</a>
+                        <span class="badge bg-danger">@r.ErrorCode</span>
+                    </div>
+                    <small class="text-muted">@r.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<JobResult> _jobs = new();
+    private List<IncidentReport> _reports = new();
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer(async _ =>
+        {
+            _jobs = await JobRepo.GetRecentAsync(20);
+            _reports = (await ReportRepo.GetAllAsync()).Take(10).ToList();
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 5000);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

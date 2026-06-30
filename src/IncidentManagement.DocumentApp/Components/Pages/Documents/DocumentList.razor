@@ -1,0 +1,71 @@
+@page "/documents"
+@using IncidentManagement.Shared.Models
+@using IncidentManagement.Shared.Services
+@inject DocumentRepository DocRepo
+@rendermode InteractiveServer
+
+<PageTitle>Dokümanlar</PageTitle>
+<h2>Tüm Dokümanlar</h2>
+<a href="documents/new" class="btn btn-primary mb-3">+ Yeni Doküman</a>
+
+@if (_docs == null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (!_docs.Any())
+{
+    <p class="text-muted">Henüz doküman yok.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr><th>Başlık</th><th>Kategori</th><th>Yazar / Takım</th><th>Durum</th><th>Tarih</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var d in _docs)
+            {
+                <tr>
+                    <td>@d.Title</td>
+                    <td>@CategoryLabel(d.Category)</td>
+                    <td>@d.AuthorName / @d.AuthorTeam</td>
+                    <td><span class="badge @StatusBadge(d.Status)">@StatusLabel(d.Status)</span></td>
+                    <td>@d.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Document>? _docs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _docs = await DocRepo.GetAllAsync();
+    }
+
+    private string StatusBadge(DocumentStatus s) => s switch
+    {
+        DocumentStatus.Pending => "bg-warning text-dark",
+        DocumentStatus.Approved => "bg-success",
+        DocumentStatus.Rejected => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private string StatusLabel(DocumentStatus s) => s switch
+    {
+        DocumentStatus.Pending => "Bekliyor",
+        DocumentStatus.Approved => "Onaylandı",
+        DocumentStatus.Rejected => "Reddedildi",
+        _ => s.ToString()
+    };
+
+    private string CategoryLabel(DocumentCategory c) => c switch
+    {
+        DocumentCategory.ControlMErrors => "Control-M Hataları",
+        DocumentCategory.IncidentHistory => "Geçmiş Incidentlar",
+        DocumentCategory.CodeDocumentation => "Kod Dokümantasyonu",
+        _ => c.ToString()
+    };
+}

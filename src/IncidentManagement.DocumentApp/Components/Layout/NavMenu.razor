@@ -1,0 +1,53 @@
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Incident Management</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Dashboard
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="incidents">
+                <span class="bi bi-exclamation-triangle-fill" aria-hidden="true"></span> Incident Listesi
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="monitor">
+                <span class="bi bi-display" aria-hidden="true"></span> Live Monitor
+            </NavLink>
+        </div>
+        <div class="nav-item px-3 mt-2">
+            <span class="nav-link text-muted small">DOKÜMANLAR</span>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="documents/new">
+                <span class="bi bi-plus-circle" aria-hidden="true"></span> Yeni Doküman
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="documents">
+                <span class="bi bi-file-text" aria-hidden="true"></span> Tüm Dokümanlar
+            </NavLink>
+        </div>
+        <div class="nav-item px-3 mt-2">
+            <span class="nav-link text-muted small">YÖNETİM</span>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="admin/approvals">
+                <span class="bi bi-check-circle" aria-hidden="true"></span> Onay Paneli
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="admin/index-status">
+                <span class="bi bi-database" aria-hidden="true"></span> İndeks Durumu
+            </NavLink>
+        </div>
+    </nav>
+</div>

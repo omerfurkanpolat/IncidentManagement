@@ -1,0 +1,91 @@
+@page "/"
+@using IncidentManagement.Shared.Services
+@using IncidentManagement.Shared.Models
+@inject IncidentReportRepository ReportRepo
+@inject JobResultRepository JobRepo
+@rendermode InteractiveServer
+
+<PageTitle>Dashboard</PageTitle>
+<h1>Dashboard</h1>
+
+@if (_loading)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Bugünkü Incidentlar</h5>
+                    <p class="card-text fs-2">@_todayCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Açık Incidentlar</h5>
+                    <p class="card-text fs-2">@_openCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">İşlenmemiş Job</h5>
+                    <p class="card-text fs-2">@_pendingJobs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Incident</h5>
+                    <p class="card-text fs-2">@_reports.Count</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4>Son 5 Incident</h4>
+    <table class="table table-striped">
+        <thead><tr><th>Job Adı</th><th>Hata Kodu</th><th>Durum</th><th>Tarih</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var r in _reports.Take(5))
+            {
+                <tr>
+                    <td>@r.JobName</td>
+                    <td><span class="badge bg-danger">@r.ErrorCode</span></td>
+                    <td><span class="badge @StatusBadge(r.Status)">@r.Status</span></td>
+                    <td>@r.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                    <td><a href="incidents/@r.Id" class="btn btn-sm btn-outline-primary">Detay</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<IncidentReport> _reports = new();
+    private long _todayCount, _openCount, _pendingJobs;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _reports = await ReportRepo.GetAllAsync();
+        _todayCount = await ReportRepo.CountTodayAsync();
+        _openCount = await ReportRepo.CountOpenAsync();
+        _pendingJobs = (await JobRepo.GetFailedUnprocessedAsync()).Count;
+        _loading = false;
+    }
+
+    private string StatusBadge(IncidentStatus s) => s switch
+    {
+        IncidentStatus.Open => "bg-danger",
+        IncidentStatus.InProgress => "bg-warning",
+        IncidentStatus.Resolved => "bg-success",
+        _ => "bg-secondary"
+    };
+}

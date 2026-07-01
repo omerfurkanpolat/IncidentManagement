@@ -7,6 +7,7 @@ namespace IncidentManagement.Shared.Services;
 public class ChromaDbClient
 {
     private readonly HttpClient _http;
+    private const string Base = "/api/v2/tenants/default_tenant/databases/default_database";
 
     public ChromaDbClient(HttpClient http, IConfiguration config)
     {
@@ -16,15 +17,27 @@ public class ChromaDbClient
 
     public async Task EnsureCollectionAsync(string collectionName)
     {
+        var getResp = await _http.GetAsync($"{Base}/collections/{collectionName}");
+        if (getResp.IsSuccessStatusCode) return;
+
         var payload = new { name = collectionName };
-        await _http.PostAsJsonAsync("/api/v1/collections", payload);
-        // 409 = already exists, ignore
+        await _http.PostAsJsonAsync($"{Base}/collections", payload);
     }
 
     public async Task<string> GetCollectionIdAsync(string collectionName)
     {
-        var response = await _http.GetFromJsonAsync<ChromaCollection>($"/api/v1/collections/{collectionName}");
-        return response!.Id;
+        var getResp = await _http.GetAsync($"{Base}/collections/{collectionName}");
+        if (getResp.IsSuccessStatusCode)
+        {
+            var col = await getResp.Content.ReadFromJsonAsync<ChromaCollection>();
+            return col!.Id;
+        }
+
+        var payload = new { name = collectionName };
+        var createResp = await _http.PostAsJsonAsync($"{Base}/collections", payload);
+        createResp.EnsureSuccessStatusCode();
+        var created = await createResp.Content.ReadFromJsonAsync<ChromaCollection>();
+        return created!.Id;
     }
 
     public async Task AddEmbeddingsAsync(string collectionId, List<ChromaDocument> documents)
@@ -36,7 +49,7 @@ public class ChromaDbClient
             documents = documents.Select(d => d.Text).ToList(),
             metadatas = documents.Select(d => d.Metadata).ToList()
         };
-        await _http.PostAsJsonAsync($"/api/v1/collections/{collectionId}/add", payload);
+        await _http.PostAsJsonAsync($"{Base}/collections/{collectionId}/add", payload);
     }
 
     public async Task<List<ChromaSearchResult>> QueryAsync(string collectionId, float[] queryEmbedding, int nResults = 3)
@@ -47,7 +60,7 @@ public class ChromaDbClient
             n_results = nResults,
             include = new[] { "documents", "metadatas", "distances" }
         };
-        var response = await _http.PostAsJsonAsync($"/api/v1/collections/{collectionId}/query", payload);
+        var response = await _http.PostAsJsonAsync($"{Base}/collections/{collectionId}/query", payload);
         var result = await response.Content.ReadFromJsonAsync<ChromaQueryResponse>();
         return result?.ToSearchResults() ?? new();
     }

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using IncidentManagement.Shared.Models;
+using ModelContextProtocol.Client;
 
 namespace IncidentManagement.Orchestrator.Services;
 
@@ -24,64 +25,106 @@ public class LlmService
 
     public async Task<IncidentAnalysis> AnalyzeIncidentAsync(JobResult jobResult)
     {
-        var tools = await GetMcpToolDefinitionsAsync();
-        var messages = new List<OllamaMessage>
+        var (tools, mcpClient) = await GetMcpToolsAsync();
+
+        await using (mcpClient)
         {
-            new() { Role = "system", Content = BuildSystemPrompt() },
-            new() { Role = "user",   Content = BuildUserPrompt(jobResult) }
-        };
-
-        var sourcesUsed = new List<string>();
-
-        for (int iteration = 0; iteration < 10; iteration++)
-        {
-            var response = await CallOllamaAsync(messages, tools);
-
-            if (response.Message?.ToolCalls == null || !response.Message.ToolCalls.Any())
-                return new IncidentAnalysis(response.Message?.Content ?? string.Empty, sourcesUsed);
-
-            messages.Add(new OllamaMessage
+            var messages = new List<OllamaMessage>
             {
-                Role = "assistant",
-                Content = response.Message.Content ?? string.Empty,
-                ToolCalls = response.Message.ToolCalls
-            });
+                new() { Role = "system", Content = BuildSystemPrompt() },
+                new() { Role = "user",   Content = BuildUserPrompt(jobResult) }
+            };
 
-            foreach (var toolCall in response.Message.ToolCalls)
+            var sourcesUsed = new List<string>();
+
+            for (int iteration = 0; iteration < 10; iteration++)
             {
-                _logger.LogInformation("[Orchestrator] Tool çağrısı: {Tool}", toolCall.Function?.Name);
-                var toolResult = await CallMcpToolAsync(toolCall);
-                sourcesUsed.Add(toolCall.Function?.Name ?? "unknown");
-                messages.Add(new OllamaMessage { Role = "tool", Content = toolResult });
+                var response = await CallOllamaAsync(messages, tools);
+
+                if (response.Message?.ToolCalls == null || !response.Message.ToolCalls.Any())
+                    return new IncidentAnalysis(response.Message?.Content ?? string.Empty, sourcesUsed);
+
+                messages.Add(new OllamaMessage
+                {
+                    Role = "assistant",
+                    Content = response.Message.Content ?? string.Empty,
+                    ToolCalls = response.Message.ToolCalls
+                });
+
+                foreach (var toolCall in response.Message.ToolCalls)
+                {
+                    var toolName = toolCall.Function?.Name ?? "";
+                    _logger.LogInformation("[Orchestrator] Tool çağrısı: {Tool}", toolName);
+
+                    var toolResult = mcpClient != null
+                        ? await CallMcpToolAsync(mcpClient, toolCall)
+                        : "MCP bağlantısı yok.";
+
+                    sourcesUsed.Add(toolName);
+                    messages.Add(new OllamaMessage { Role = "tool", Content = toolResult });
+                }
             }
-        }
 
-        return new IncidentAnalysis("Analiz tamamlanamadı.", sourcesUsed);
+            return new IncidentAnalysis("Analiz tamamlanamadı.", sourcesUsed);
+        }
     }
 
-    private async Task<List<OllamaTool>> GetMcpToolDefinitionsAsync()
+    private async Task<(List<OllamaTool> tools, McpClient? client)> GetMcpToolsAsync()
     {
         try
         {
-            using var mcpHttp = new HttpClient();
-            var payload = new { method = "tools/list", @params = new { } };
-            var response = await mcpHttp.PostAsJsonAsync($"{_mcpServerUrl}/mcp", payload);
-            var result = await response.Content.ReadFromJsonAsync<McpToolsListResponse>();
-            return result?.Result?.Tools?.Select(t => new OllamaTool
+            var transport = new HttpClientTransport(new HttpClientTransportOptions
+            {
+                Endpoint = new Uri($"{_mcpServerUrl}/")
+            });
+
+            var client = await McpClient.CreateAsync(transport);
+            var mcpTools = await client.ListToolsAsync();
+
+            var tools = mcpTools.Select(t => new OllamaTool
             {
                 Type = "function",
                 Function = new OllamaToolFunction
                 {
                     Name = t.Name,
-                    Description = t.Description,
-                    Parameters = t.InputSchema
+                    Description = t.Description ?? "",
+                    Parameters = t.JsonSchema
                 }
-            }).ToList() ?? new();
+            }).ToList();
+
+            _logger.LogInformation("[Orchestrator] MCP'den {Count} tool alındı", tools.Count);
+            return (tools, client);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[Orchestrator] MCP tool tanımları alınamadı");
-            return new();
+            _logger.LogWarning(ex, "[Orchestrator] MCP tool tanımları alınamadı, RAG devre dışı");
+            return (new List<OllamaTool>(), null);
+        }
+    }
+
+    private async Task<string> CallMcpToolAsync(McpClient client, OllamaToolCall toolCall)
+    {
+        try
+        {
+            var args = toolCall.Function?.Arguments?
+                .ToDictionary(k => k.Key, v => (object?)v.Value?.ToString());
+
+            var result = await client.CallToolAsync(
+                toolCall.Function?.Name ?? "",
+                args ?? new Dictionary<string, object?>()
+            );
+
+            var text = result.Content
+                .OfType<ModelContextProtocol.Protocol.TextContentBlock>()
+                .Select(c => c.Text)
+                .FirstOrDefault();
+
+            return text ?? "Sonuç boş.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Orchestrator] Tool çağrısı başarısız: {Tool}", toolCall.Function?.Name);
+            return $"Tool çağrısı başarısız: {ex.Message}";
         }
     }
 
@@ -98,41 +141,6 @@ public class LlmService
         var response = await _http.PostAsJsonAsync("/api/chat", payload);
         return await response.Content.ReadFromJsonAsync<OllamaResponse>()
             ?? new OllamaResponse();
-    }
-
-    private async Task<string> CallMcpToolAsync(OllamaToolCall toolCall)
-    {
-        try
-        {
-            using var mcpHttp = new HttpClient();
-            var payload = new
-            {
-                method = "tools/call",
-                @params = new
-                {
-                    name = toolCall.Function?.Name,
-                    arguments = toolCall.Function?.Arguments
-                }
-            };
-
-            var response = await mcpHttp.PostAsJsonAsync($"{_mcpServerUrl}/mcp", payload);
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-
-            if (doc.RootElement.TryGetProperty("result", out var result) &&
-                result.TryGetProperty("content", out var content) &&
-                content.ValueKind == JsonValueKind.Array &&
-                content.GetArrayLength() > 0)
-            {
-                return content[0].TryGetProperty("text", out var text) ? text.GetString() ?? "" : "";
-            }
-
-            return "Tool sonucu alınamadı.";
-        }
-        catch (Exception ex)
-        {
-            return $"Tool çağrısı başarısız: {ex.Message}";
-        }
     }
 
     private string BuildSystemPrompt() => """
@@ -154,12 +162,9 @@ public class LlmService
         Aşağıdaki Control-M job hatası analiz edilmesi gerekiyor:
 
         **Job Adı:** {job.JobName}
-        **Job ID:** {job.JobId}
         **Hata Kodu:** {job.ErrorCode}
         **Hata Mesajı:** {job.ErrorMessage}
-        **Tetiklenen Endpoint:** {job.EndpointUrl}
-        **Başlangıç:** {job.StartTime:yyyy-MM-dd HH:mm:ss}
-        **Bitiş:** {job.EndTime:yyyy-MM-dd HH:mm:ss}
+        **Endpoint:** {job.EndpointUrl}
 
         Lütfen araçları kullanarak bu hatayı analiz et ve çözüm önerisi sun.
         """;
@@ -169,8 +174,8 @@ public record IncidentAnalysis(string Analysis, List<string> SourcesUsed);
 
 public class OllamaMessage
 {
-    [JsonPropertyName("role")]    public string Role { get; set; } = string.Empty;
-    [JsonPropertyName("content")] public string? Content { get; set; }
+    [JsonPropertyName("role")]       public string Role { get; set; } = string.Empty;
+    [JsonPropertyName("content")]    public string? Content { get; set; }
     [JsonPropertyName("tool_calls")] public List<OllamaToolCall>? ToolCalls { get; set; }
 }
 
@@ -201,21 +206,4 @@ public class OllamaToolCallFunction
 {
     [JsonPropertyName("name")]      public string Name { get; set; } = string.Empty;
     [JsonPropertyName("arguments")] public Dictionary<string, object>? Arguments { get; set; }
-}
-
-public class McpToolsListResponse
-{
-    [JsonPropertyName("result")] public McpToolsResult? Result { get; set; }
-}
-
-public class McpToolsResult
-{
-    [JsonPropertyName("tools")] public List<McpToolDef>? Tools { get; set; }
-}
-
-public class McpToolDef
-{
-    [JsonPropertyName("name")]        public string Name { get; set; } = string.Empty;
-    [JsonPropertyName("description")] public string Description { get; set; } = string.Empty;
-    [JsonPropertyName("inputSchema")] public object? InputSchema { get; set; }
 }
